@@ -190,7 +190,7 @@ The Arduino Pico core includes a library to emulate an EEPROM using the Pi Pico'
 +-----------------------------------------+----------+---------------------------------+------------------------------+
 | Capacitor Ceramic 100n                  | 2        | `<https://shorturl.at/smvFK>`__ | 1 for transmit 1 for receive |
 +-----------------------------------------+----------+---------------------------------+------------------------------+
-| Resistor 100 ohm                        | 2        | `<https://shorturl.at/QXFMh>`__ | for transmit examples        |
+| Resistor 100 ohm                        | 1        | `<https://shorturl.at/QXFMh>`__ | for transmit examples        |
 +-----------------------------------------+----------+---------------------------------+------------------------------+
 | Capacitor Ceramic 470n                  | 1        | `<https://shorturl.at/hRgnC>`__ | for transmit examples        |
 +-----------------------------------------+----------+---------------------------------+------------------------------+
@@ -304,4 +304,6 @@ In this installation, the Pi Pico SSTV decoder has been extended into a more ful
 I haven't had much luck yet receiving SSTV from the International Space Station, and I seem to keep missing upcoming events. This is something I would really like to get working, so I'm going to keep looking out for opportunities.
 
 There is still plenty more I would like to achieve in the future. Among other things, I would like to extend the code to include support for a small camera. I'm also keen to extend the decoder to include other digital modes such as FT8, PSK31, and RTTY. I would also like to look at designing CW functionality. Watch this space for more updates!
+
+If you would like to support 101Things, buy me a coffee: https://ko-fi.com/101things
 

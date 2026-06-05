@@ -11,6 +11,8 @@ Welcome to 101 Things's documentation!
    :caption: Contents:
 
    transmitter_experiments
+   walkie_talkie
+   ham_fist
    junkbox_arcade
    planetarium
    sstv_decoder
@@ -35,3 +37,4 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
