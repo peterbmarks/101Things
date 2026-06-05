@@ -10,6 +10,7 @@ Welcome to 101 Things's documentation!
    :maxdepth: 1
    :caption: Contents:
 
+   transmitter_experiments
    junkbox_arcade
    planetarium
    sstv_decoder
