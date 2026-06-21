@@ -25,6 +25,10 @@ This project should not be considered a construction guide, product, or recommen
 
 Finally, while I am happy to share my findings, I am unable to provide ongoing support for individual builds, hardware modifications, bug fixes, troubleshooting, or feature requests. The information is published primarily as a record of my own experiments and to encourage further investigation by others with similar interests.
 
+Experimental Code
+=================
+
+The code used in the experimental transmitter may be found here: `branch <https://github.com/dawsonjon/PicoRX/tree/xcvr>`_
 
 Polar vs IQ Modulation
 ======================
@@ -70,10 +74,10 @@ Polar Modulated Transmitter
 
 In the polar architecture, the internal NCO approach closely follows the original transmitter concept. The RF carrier is generated directly on-chip using a PIO-based oscillator, with phase control applied in software. This allows tight coupling between the modulation process and the carrier generation, enabling fine-grained phase manipulation and rapid updates.
 
-An alternative implementation uses an external Si5351 clock generator. In this configuration, achieving phase modulation requires a different strategy: instead of directly controlling a digital NCO, the system must apply rapid frequency updates to the Si5351 over SPI in order to indirectly modulate phase. This approach is conceptually similar to the technique used in the uSDX transceiver architecture, a novel and disruptive approach where fast frequency stepping is used to approximate continuous phase modulation.
+An alternative implementation uses an external Si5351 clock generator. In this configuration, achieving phase modulation requires a different strategy: instead of directly controlling a digital NCO, the system must apply rapid frequency updates to the Si5351 over I2C in order to indirectly modulate phase. This approach is conceptually similar to the technique used in the uSDX transceiver architecture, a novel and disruptive approach where fast frequency stepping is used to approximate continuous phase modulation.
 
 Reference to uSDX-style frequency update approach by Guido (PE1NNZ):
-`<https://github.com/threeme3/usdx>`_
+`uSDX <https://github.com/threeme3/usdx>`_
 
 While this method introduces additional more complex hardware and additional constraints compared to an internal NCO, it may offer improved spectral performance.
 
@@ -82,9 +86,9 @@ QSE-Based Transmitter
 
 The QSE-based architecture similarly supports both internal and external local oscillator options. In the Pi Pico RX receiver, a quadrature local oscillator can already be generated internally using PIO-based techniques or provided externally using an Si5351 clock generator.
 
-In this transmitter variant, the same quadrature local oscillator is reused to drive the QSE stage directly, ensuring phase coherence between the I/Q paths and the RF modulation process. This reuse of the existing LO infrastructure simplifies the overall system design and maintains consistency with the receiver architecture.
+In this transmitter variant, the same quadrature local oscillator is reused to drive the QSE stage. This reuse of the existing LO infrastructure simplifies the overall system design and maintains consistency with the receiver architecture.
 
-As with the polar implementation, the choice between internal and external oscillator sources represents a key design trade-off between integration and flexibility, and both options are being evaluated as part of the experimental process.
+As with the polar implementation, the choice between internal and external oscillator sources represents a key design trade-off between hardware simlicity and spectral purity, and both options are being evaluated as part of the experimental process.
 
 Polar Test Bed
 ==============
@@ -108,7 +112,7 @@ This simplified arrangement allows rapid iteration on modulation algorithms and 
 Polar Concept Internal Oscillator
 =================================
 
-A significant portion of the development effort has focused on improving the spectral purity of the internal local oscillator implementation. The original design exhibited clearly visible spurious components, particularly when operating the polar modulator with a software-driven NCO. Several architectural and algorithmic changes have been introduced to address these issues.
+A significant portion of the development effort has focused on improving the spectral purity of the internal local oscillator implementation. The original design exhibited clearly visible spurious components. Several architectural and algorithmic changes have been introduced to address these issues.
 
 1. Increasing Phase Update Rate and Interpolation
 
@@ -151,7 +155,7 @@ Polar Concept External Oscillator
 
 An alternative transmitter implementation has been developed using an external Si5351 clock generator. In this configuration, the third output of the Si5351 is dedicated to the transmit signal path, while outputs 1 and 2 remain reserved for the quadrature local oscillator used by the Pi Pico RX receiver. This allows the receiver and transmitter subsystems to coexist while sharing a common frequency reference source.
 
-To support this approach, the existing Si5351 library has been extended with additional functionality to enable rapid, small-step frequency updates. These updates are intended to act as the primary modulation mechanism for transmission. (The code used for these modifications is documented separately and can be referenced alongside this section.)
+To support this approach, the existing Si5351 library has been extended with additional functionality to enable rapid, small-step frequency updates. These updates are intended to act as the primary modulation mechanism for transmission.
 
 Modulation Principle
 ''''''''''''''''''''
@@ -202,12 +206,12 @@ The in-phase (I) and quadrature (Q) baseband signals are generated using PWM out
 
 In many conventional QSE implementations, the required phase inversion is typically achieved using op-amp based inverting and non-inverting stages to produce accurate I, Q, −I, and −Q signals. In this design, that function is instead implemented digitally using a 74LV04 inverter.
 
-By using the same logic physical device to generate both the normal and inverted signals, the design ensures that each pair of complementary signals is produced under closely matched conditions. This reduces the opportunity for I/Q imbalance introduced by analogue component mismatch or op-amp non-linearities.
+By using the same physical device to generate both the normal and inverted signals, the design ensures that each pair of complementary signals is produced under closely matched conditions. This reduces the opportunity for I/Q imbalance introduced by analogue component mismatch or op-amp non-linearities.
 
 PWM Generation, Interpolation, and Noise Shaping
 ''''''''''''''''''''''''''''''''''''''''''''''''
 
-Each of the four PWM-derived audio signals (I, Q, and their inverted counterparts) is passed through a simple RC low-pass filter. The PWM frequency is chosen to be sufficiently high that the resulting filter can be relatively narrow while still achieving strong attenuation of switching noise.
+Each of the four PWM-derived audio signals (I, Q, and their inverted counterparts) is passed through a simple RC low-pass filter. The PWM frequency is chosen to be sufficiently hihg, that the relatively narrow filtercan achieving strong attenuation of switching noise.
 
 To further improve baseband signal quality, the PWM generation process also incorporates interpolation and noise shaping. Interpolation is used to smooth transitions between successive audio samples, reducing abrupt quantisation steps in the reconstructed waveform. Noise shaping is then applied to spectrally push quantisation error out of the most critical in-band region, concentrating residual error at higher frequencies where it is more effectively attenuated by the analogue RC filtering.
 
@@ -234,7 +238,7 @@ The four transmitter variants can be summarised more simply by grouping their ke
 Overall, the designs fall into two broad categories:
 
 Polar modulation: compatible with efficient switching (Class-E) power amplification, but more sensitive to non-linearities in phase and amplitude generation.
-QSE modulation: produces cleaner audio and fewer modulation artefacts, but requires a linear RF power amplifier.
+QSE modulation: produces clean audio with fewer modulation artefacts, but requires a linear RF power amplifier.
 
 A further division exists between internal NCO and external Si5351 implementations, which primarily affects spurious performance and hardware complexity.
 
@@ -258,7 +262,7 @@ Key Observations
 
 The results highlight several consistent trends:
 
-The QSE architectures consistently produce better audio quality than the polar approaches, with fewer perceptible artefacts and reduced modulation distortion.
+The QSE architectures consistently produce a cleaner signal than the polar approaches, with fewer perceptible artefacts and reduced modulation distortion.
 The polar implementations exhibit a small amount of splatter, likely arising from non-linearities in phase and amplitude interaction. This is not observed in the QSE versions.
 In both architectures, the Si5351 improves spurious performance compared to the internal oscillator, despite its bandwidth and update-rate limitations.
 Between the two polar variants, the internal oscillator produces slightly better audio quality than the Si5351-based approach, although both remain acceptable for experimental use.
@@ -311,31 +315,231 @@ The QSE + internal NCO configuration is unlikely to be pursued further due to it
 In summary, the polar architectures remain attractive for efficient RF power stages and minimal hardware, while the QSE architectures provide superior signal fidelity at the cost of amplifier efficiency. The choice between them ultimately depends on whether efficiency or signal purity is the primary design goal.
 
 
-Modes
-==========
+Supported Modes
+===============
 
-CW
-==
+The transceiver supports all of the operating modes available in the original transmitter experiments, including AM, FM, and SSB. These modes share a common modulation framework, allowing different operating modes to be selected with relatively little additional complexity.
 
-CW Keyer
-Pulse Shaping
+Amplitude Modulation (AM)
+'''''''''''''''''''''''''
 
-Speech Processor
-================
+Conventional amplitude modulation is supported for experimentation and compatibility with vintage and educational applications. While AM is not the most spectrum-efficient mode, it provides a useful test case for evaluating transmitter linearity and modulation performance.
 
-+ Mic Gain
-+ Noise Gate
-+ Equilisation - include link to Bob Heil
-+ Compression - impreve peak to average ratio
+Frequency Modulation (FM)
+'''''''''''''''''''''''''
 
-CESSB
-=====
+Frequency modulation is implemented by directly controlling the transmitter frequency. The FM mode benefits from the accurate frequency generation available in both the internal NCO and Si5351-based architectures and provides good audio quality for local communications and experimentation.
 
-+ Filtering causes overshoot
-+ Clipping causes frequency splatter
-+ "More than cluipping"
-+ Pico Rx Approach
+Single Sideband (SSB)
+'''''''''''''''''''''
 
-Speech processor results
-========================
+Single sideband is the primary voice mode supported by the transceiver. Both the polar and QSE transmitter architectures are capable of generating high-quality SSB signals, making efficient use of available bandwidth and transmitter power. The SSB implementation also provides a platform for advanced processing techniques such as speech processing and Controlled Envelope Single Sideband (CESSB), both of which are discussed later in this article.
+
+Continuous Wave (CW)
+''''''''''''''''''''
+
+In addition to voice modes, the transceiver includes integrated support for CW operation. Both straight keys and iambic paddles are supported, allowing the transceiver to be used in a conventional Morse operating environment without requiring external keying hardware.
+
+As described in the hardware section, the dedicated **dit** and **dah** inputs serve a dual purpose. During CW operation they function as paddle inputs for the integrated keyer, while in voice modes they act as a combined PTT input. This arrangement helps minimise the number of external connections required while retaining full support for both voice and Morse operation.
+
+To minimise key-clicks and reduce transmitted splatter, the CW envelope is shaped using a raised-cosine keying profile. Rather than switching the carrier abruptly on and off, the transmitted amplitude is smoothly ramped during key transitions. This significantly reduces the bandwidth occupied by the CW signal and improves spectral cleanliness, particularly at higher keying speeds.
+
+The CW implementation shares the same transmit hardware as the voice modes, allowing seamless integration of voice and Morse operation within a single transceiver design.
+
+Speech Processing
+=================
+
+A significant amount of effort has been invested in improving the transmit audio chain compared to the original transmitter experiments. The goal is not only to improve audio quality, but also to maximise intelligibility and effective transmitted power—particularly important considerations for a QRP transceiver.
+
+Improved Audio Capture
+''''''''''''''''''''''
+
+The first improvement is in the audio acquisition process itself. In the original transmitter design, microphone samples were taken directly from the ADC at the audio sample rate. While simple, this approach leaves the system vulnerable to ADC noise and aliasing artefacts.
+
+In the current design, the ADC is continuously sampled at a much higher rate using a DMA channel driven by a pacing timer. The resulting samples are stored in a circular buffer, from which the transmitter combines multiple samples to produce each decimated audio sample.
+
+This oversampling process provides two important benefits:
+
+* Reduced ADC noise
+* Improved rejection of aliasing products
+
+The result is a noticeable improvement in received audio quality and a cleaner input signal for subsequent processing stages.
+
+Microphone Gain
+'''''''''''''''
+
+The first stage of signal processing is a manually adjustable microphone gain control. This allows the transmitter to be configured for a wide variety of microphones and operating conditions.
+
+To assist adjustment, a transmit level indicator is displayed while transmitting, allowing microphone gain to be set appropriately without excessive clipping or compression.
+
+Noise Gate
+''''''''''
+
+Following the microphone gain stage, the audio passes through a noise gate. The purpose of the noise gate is to suppress background noise during pauses in speech by completely muting the audio when the signal level falls below a configurable threshold.
+
+To prevent abrupt transitions and chattering around the threshold, the gate incorporates both hysteresis and gain smoothing. This allows the gate to open and close naturally while avoiding distracting artefacts.
+
+The result is a quieter transmitted signal during speech pauses and reduced transmission of ambient room noise.
+
+Equalisation
+''''''''''''
+
+The next stage is a configurable equaliser derived from the bass and treble enhancement functions originally developed for the Pi Pico RX project. For transmit use, the equaliser has been extended to allow both boost and cut of the bass and treble regions.
+
+One of the strongest advocates of transmit audio equalisation in amateur radio was Bob Heil (W9GR's work on CESSB is discussed elsewhere; Bob Heil's contributions were in microphone and audio system design). Bob frequently demonstrated that speech intelligibility depends far more on the mid- and upper-frequency speech components than on the low-frequency content. In particular, he showed that emphasising frequencies around 2.5–3 kHz can significantly improve articulation and readability, while excessive bass often contributes little to intelligibility.
+
+.. raw:: html
+
+   <iframe width="560" height="315" src="https://www.youtube.com/embed/EPeHCNlX_MQ?si=viC2MygeyFLnFaK6" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+The transmitter's equalisation controls allow bass frequencies to be reduced while simultaneously boosting the upper speech frequencies. In practice, this produces a noticeably more intelligible signal, helping speech cut through noise and making more effective use of the available transmit bandwidth.
+
+.. image:: images/transmitter_experiments/speech_filter.png
+
+These video clips demonstrate the effect:
+
+*before*
+
+.. raw:: html
+
+   <iframe width="560" height="315" src="https://www.youtube.com/embed/dIUZ8lSIi4c?si=J8-I7amFJHQoN1CK" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+*after*
+
+.. raw:: html
+
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/wlgskynAors?si=GUTd6pXrK7hHdTdx" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+
+Speech Compression
+''''''''''''''''''
+
+The final stage of audio processing is a speech compressor.
+
+The purpose of compression is to reduce the dynamic range of the speech signal, allowing the average transmitted power to be increased without increasing the peak envelope power (PEP). Since communication effectiveness is generally determined by average rather than peak power, this can provide a substantial improvement in readability.
+
+The compressor operates entirely on real-valued audio samples. To estimate the signal envelope efficiently, a "leaky max-hold" detector is used as an approximation to a conventional envelope follower. This provides a fast estimate of signal peaks while requiring relatively little processing power.
+
+A look-ahead buffer is incorporated to compensate for delays in the envelope measurement process. By delaying the audio slightly, gain reduction can be applied before large peaks reach the output, allowing rapid attack times without introducing objectionable distortion.
+
+The combination of envelope tracking, look-ahead processing, and gain smoothing produces a responsive compressor that significantly increases average talk power while maintaining natural-sounding speech.
+
+Compression and CESSB
+'''''''''''''''''''''
+
+.. image:: images/transmitter_experiments/audio_compression.png
+
+The speech compressor works well in combination with CESSB processing described in the next section.
+
+Compression increases the average speech level, while CESSB reduces the peak-to-average power ratio of the resulting signal. Together, these techniques allow the transmitter to operate much closer to its maximum output capability without exceeding peak envelope limits.
+
+In practical terms, the combination of compression and CESSB can more than double the effective transmitted power of a typical speech signal. For a QRP transmitter, this represents a significant performance improvement without requiring any increase in RF output power.
+
+The overall result is a more punchy, intelligible signal that makes the most effective use of the limited power available from a low-power station.
+
+*before*
+
+.. raw:: html
+
+   <iframe width="560" height="315" src="https://www.youtube.com/embed/dIUZ8lSIi4c?si=J8-I7amFJHQoN1CK" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+*after*
+
+.. raw:: html
+
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/zM1usE9EHLU?si=U8bC0Esb52ZXfvBj" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+Controlled Envelope Single Sideband (CESSB)
+===========================================
+
+Controlled Envelope Single Sideband (CESSB) is an audio processing technique designed to increase the effective transmitted power of SSB signals without increasing distortion or spectral splatter. The technique was invented by David L. Hershberger (W9GR), and is described in detail in his published work and accompanying demonstrations.
+
+Further reading and background material:
+
+`<https://www.arrl.org/files/file/QEX_Next_Issue/2014/Nov-Dec_2014/Hershberger_QEX_11_14.pdf>`_
+`<https://archive.org/details/youtube-nAGUmHrO3Ac>`_
+
+Motivation: the problem of “peaky” audio
+''''''''''''''''''''''''''''''''''''''''
+
+A key limitation in conventional SSB transmitters is that speech signals are highly “peaky” in nature. The peak-to-average ratio (crest factor) of typical speech can be quite high, meaning that short-duration peaks dominate the required headroom of the transmitter.
+
+If the transmitter gain is set so that all peaks can be reproduced without distortion, the average power level must be reduced significantly to avoid clipping. This results in a substantial reduction in effective transmitted power for most of the time, even though the transmitter is only rarely operating at peak levels.
+
+Clipping and its consequences
+'''''''''''''''''''''''''''''
+
+One approach to improving efficiency is to deliberately to clip the peaks. While this increases average power, it introduces significant distortion products, particularly high-frequency components that manifest as spectral splatter in adjacent channels.
+
+A conventional mitigation strategy is to apply a low-pass filter after clipping to remove these unwanted high-frequency components. However, this introduces a secondary effect: the filtering process produces time-domain overshoot (often seen as ringing), which can partially recreate the very peaks that were originally clipped.
+
+This leads to a counterintuitive situation where:
+
++ clipping reduces peaks but increases spectral content
++ filtering removes spectral content but reintroduces peaks
+
+Key insight behind CESSB
+''''''''''''''''''''''''
+
+The central insight behind CESSB is that not all peaks are equally important. By selectively and more aggressively controlling overshoot components—rather than uniformly clipping the entire waveform—it is possible to significantly reduce the peak-to-average ratio without introducing excessive distortion.
+
+In essence, CESSB targets the structure of the signal responsible for filter-induced overshoot, applying more controlled clipping to those specific regions. This results in a waveform that produces far less overshoot after filtering.
+
+Resulting performance improvement
+'''''''''''''''''''''''''''''''''
+
+By limiting overshoot to a small and predictable level, the transmitter gain can be safely increased without exceeding distortion limits. In practical terms, this allows the average transmitted power to be increased significantly—often approaching a factor of two improvement in effective power output for speech signals.
+
+For QRP (low-power) transmitters, this represents a particularly valuable enhancement, as it provides a near “free” increase in effective radiated power without requiring changes to the RF power amplifier stage.
+
+CESSB is therefore not simply a clipping technique, but a structured method of waveform conditioning that optimises the interaction between clipping and filtering. By managing overshoot rather than merely suppressing peaks, it enables higher average transmit power while maintaining spectral integrity.
+
+
+Integrating CESSB into the Pico Rx SSB modulator
+''''''''''''''''''''''''''''''''''''''''''''''''
+
+The CESSB implementation requires the signal to be processed in a single-sideband form. Rather than using a conventional Weaver architecture or a Hilbert transform network, this implementation uses a combination of Fs/4 frequency shifts and half-band filters to achieve the same result.
+
+The input audio is initially a real-valued signal occupying both positive and negative frequencies. The first processing stage applies a real-valued half-band low-pass filter to remove the outer half of the spectrum, retaining only the frequency range between -Fs/4 and +Fs/4.
+
+At this stage both the signal and the filter are entirely real-valued.
+
+The filtered signal is then shifted downward by Fs/4. This moves the desired upper sideband into the range from 0 to Fs/4 while simultaneously moving the unwanted lower sideband into the range from -Fs/2 to -Fs/4.
+
+A second half-band filter is then applied. Because the undesired sideband now sites in the outer half of the spectrum, while the wanted sideband sits within the inner half of the spectrum, the filter can reject the unwanted half while retaining the desired half. This effectively removes the lower sideband and leaves a complex-valued single-sideband signal.
+
+An important feature of this approach is that although the signal is now complex, the filtering operation can still be implemented using a half-band filter with purely real coefficients. This provides a substantial computational saving compared to more conventional complex filtering techniques.
+
+Once the unwanted sideband has been removed, the resulting single-sideband signal is processed by the "More Than Clipping" stage. A further half-band filter removes spectral regrowth generated by the clipping operation.
+
+The signal is then shifted upward by Fs/4, returning the desired sideband to its original frequency range. A final half-band filter removes any residual image products or spectral leakage introduced by the clipping and frequency translation stages.
+
+The result is a spectrally clean single-sideband signal with a controlled envelope, suitable for the final gain stage and subsequent RF modulation.
+
+.. image:: images/transmitter_experiments/CESSB_flow.svg
+
+The chart below shows how the envelope of a tone burst and a speech sample evolve as they pass through the signal processing. The raw audio signal shows significant overshoot resulting from the first filter stage. The more-than-clipped signal show a consitent envelope with peaks removed. The output signal shows greatly reduced and consistent overshoot after the final filter.
+
+.. image:: images/transmitter_experiments/CESSB_1.png
+
+This next chart shows a zoomed in view of the clipped signal demonstrated that the envolope of the overshoot components is clipped more agressively than other parts of the signal.
+
+.. image:: images/transmitter_experiments/CESSB_2.png
+
+The final chart shows how the output signal has a greater average power once the final gain is applied. Both signals have the same peak amplitude. In this test, the average power increase by 1.8dB, which corresponds to an effective increase in output power of 50%. When combined with the audio compressor even greater improvements in average power can be achieved.
+
+.. image:: images/transmitter_experiments/CESSB_3.png
+
+
+Next Steps
+----------
+
+The experiments described here have demonstrated several promising paths towards a practical Pi Pico-based transceiver. While the work remains firmly in the experimental stage, the results so far suggest that both the polar and QSE transmitter architectures are viable approaches, each offering different advantages in terms of complexity, efficiency, and signal quality.
+
+From a software perspective, the project now contains the fundamental building blocks required to support both polar and I/Q transmission techniques within a common framework. The audio processing, modulation, keying, oscillator control, and transmit infrastructure are all in place, providing a solid foundation for further development. However, significant work remains to be done to refine the implementation, improve integration between the various subsystems, and conduct more extensive testing under a wider range of operating conditions.
+
+The next phase of development will focus on moving beyond the modulation testbeds and investigating the practical aspects of constructing a complete transceiver. This includes further experimentation with both linear and Class-E RF power amplifiers to better understand the trade-offs between efficiency, linearity, and implementation complexity. In particular, it will be interesting to determine how well the polar transmitter can exploit the efficiency advantages of switching amplifiers while maintaining acceptable spectral performance.
+
+Further work is also planned on the supporting hardware needed for a practical station. This includes output filtering, antenna switching, transmit/receive changeover, and the various control and protection mechanisms required to safely share RF hardware between the receiver and transmitter. Although these aspects are often less visible than the modulation techniques themselves, they ultimately determine how practical the design will be as an everyday transceiver.
+At this stage it is still too early to predict which architecture will prove to be the best overall solution. Nevertheless, the experiments have shown that several of the approaches are capable of producing encouraging results, and there appears to be a clear path towards integrating transmit capability into the Pi Pico RX while retaining the project's emphasis on simplicity, low cost, and experimentation.
 
