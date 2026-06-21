@@ -226,7 +226,7 @@ As with the polar design, no RF low-pass filtering or power amplification stages
 
 The overall hardware configuration is illustrated below:
 
-.. image:: images/transmitter_experiments/polar.svg
+.. image:: images/transmitter_experiments/qse.svg
 
 This configuration provides a compact and hardware-efficient route to evaluating QSE performance on the Pi Pico platform, while maintaining strong compatibility with the existing receiver architecture.
 
