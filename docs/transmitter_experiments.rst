@@ -532,7 +532,7 @@ The final chart shows how the output signal has a greater average power once the
 
 
 Next Steps
-----------
+==========
 
 The experiments described here have demonstrated several promising paths towards a practical Pi Pico-based transceiver. While the work remains firmly in the experimental stage, the results so far suggest that both the polar and QSE transmitter architectures are viable approaches, each offering different advantages in terms of complexity, efficiency, and signal quality.
 
